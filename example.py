@@ -8,6 +8,10 @@ from gaze_tracking import GazeTracking
 
 gaze = GazeTracking()
 webcam = cv2.VideoCapture(0)
+window_name = "Demo"
+#cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+#cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
 
 while True:
     # We get a new frame from the webcam
@@ -19,15 +23,27 @@ while True:
     frame = gaze.annotated_frame()
     text = ""
 
-    if gaze.is_blinking():
-        text = "Blinking"
+    rightClosed = gaze.is_closeRight()
+    leftClosed = gaze.is_closeLeft()
+    
+    if rightClosed:
+        text = "Closed left"
+    elif leftClosed:
+        text = "Closed right"  
+    #if gaze.is_blinking():
+        #text = "Blinking"
+    if rightClosed and leftClosed:   
+        text = "Closed both"
+
+    
+    '''  
     elif gaze.is_right():
         text = "Looking right"
     elif gaze.is_left():
         text = "Looking left"
     elif gaze.is_center():
         text = "Looking center"
-
+    '''
     cv2.putText(frame, text, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
 
     left_pupil = gaze.pupil_left_coords()
@@ -36,6 +52,8 @@ while True:
     cv2.putText(frame, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
 
     cv2.imshow("Demo", frame)
-
-    if cv2.waitKey(1) == 27:
+    if cv2.waitKey(1) & 0xFF == ord("q"):
         break
+    #if cv2.waitKey(1) == 27:
+        #break
+cv2.destroyAllWindows()

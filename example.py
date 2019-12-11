@@ -1,13 +1,6 @@
 """
 Demonstration of the GazeTracking library.
 Check the README.md for complete documentation.
-
-stopne sa kratky act a ulozi sa
-potom pobezi dalsi kratky act ale pokracuje aj ten dlhy
-kratke sa zatial zapisuju do pola
-ked skonci dlhy tak sa spytam ci je rovnaky jak ktatky a ci medzi nimi nebola medzera na dalsi ukon
-ak hej tak sa zapise dlhy, ak nie yapisu sa kratke z pola
-
 """
 
 import cv2

@@ -13,7 +13,6 @@ webcam = cv2.VideoCapture(0)
 window_name = "Demo"
 #cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
 #cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
 current_gesture = ""
 gesture_end_duration = 3
 short_act_duration = 1
@@ -27,12 +26,16 @@ act_stop_time = time.time()
 gestureEnd_start_time = time.time()
 gestureEnd_stop_time = time.time()
 detection_of_end = False
-        
+
+listBlop = {"Closed left":0,"Closed right":0,"Nothing":0}
+counter = 0
+text = ""
+
 def detect():
     global current_gesture
     global long
     
-    print(acts)
+    #print(acts)
     max_act = "_"
     for key in acts:
         if acts[key] > acts[max_act]:
@@ -43,7 +46,6 @@ def detect():
     
     print_act(max_act)
 
-
 def print_act(act):
     if act == 'l':
         print('left closed')
@@ -53,17 +55,30 @@ def print_act(act):
         print('both closed')
     if act == '_':
         print('none closed')
-        
 
 def detect_end():
     global gesture_started
     global current_gesture
-    #print('detekujem koniec')
     if time.time() > gestureEnd_end_time:
         gesture_started = False
         print(current_gesture)
         current_gesture = ""
 
+def start_gesture():
+    global gesture_started
+    if gesture_started == False:
+        gesture_started = True
+
+def start_act():
+    global act_started
+    global act_start_time
+    global act_stop_time
+    if act_started == False:
+        act_started = True
+        print('started')
+        act_start_time = time.time()
+        act_stop_time = act_start_time + short_act_duration
+        
 while True:
     # We get a new frame from the webcam
     _, frame = webcam.read()
@@ -72,58 +87,80 @@ while True:
     gaze.refresh(frame)
 
     frame = gaze.annotated_frame()
-    text = ""
 
     rightClosed = gaze.is_closeRight()
     leftClosed = gaze.is_closeLeft()
 
-    if (gesture_started == False and (rightClosed or leftClosed)):
-        gesture_started = True
-        
-    if (act_started == False and (rightClosed or leftClosed)):
-        act_started = True
-        print('started')
-        act_start_time = time.time()
-        act_stop_time = act_start_time + short_act_duration
-
-    if act_started == True:
-        if time.time() > act_stop_time:
-            detect()
-            act_started = False
-        
-
-    if rightClosed and leftClosed:   
-        #text = "Closed both"
-        detection_of_end = False
-        if act_started == True:
-            acts["b"] += 1 
-    elif rightClosed:
+    nothing = True
+    
+    if rightClosed:
         #text = "Closed left"
-        detection_of_end = False
-        if act_started == True:
-            acts["l"] += 1
-    elif leftClosed:
-        #text = "Closed right"
-        detection_of_end = False
-        if act_started == True:
-            acts["r"] += 1
-    else:
-        if act_started == True:
-            acts["_"] += 1
+        listBlop["Closed left"]+=1
+        nothing = False
+    if leftClosed:
+        listBlop["Closed right"]+=1
+        nothing = False
+    if nothing:
+        listBlop["Nothing"]+=1
+        
+        #text = "Closed right"  
+    #if rightClosed and leftClosed:   
+        #text = "Closed both"
 
-    if gesture_started == True and detection_of_end == False:
-        detection_of_end = True
-        gestureEnd_start_time = time.time()
-        gestureEnd_end_time = gestureEnd_start_time + gesture_end_duration
-    if gesture_started == True and detection_of_end == True:
-        detect_end()
+
+    #listBlop.append(text)
+
+    counter += 1 
+
+    if(counter==3):
+        #print(listBlop)
+
+
+        if listBlop["Closed left"] > listBlop["Closed right"]:
+            text = "Closed left"
+            detection_of_end = False
+            start_gesture()
+            start_act()
+            if act_started == True:
+                acts["l"] += 1
+                
+        elif listBlop["Closed right"] > listBlop["Closed left"]:
+            text = "Closed right"
+            detection_of_end = False
+            start_gesture()
+            start_act()
+            if act_started == True:
+                acts["r"] += 1
+                
+        elif listBlop["Nothing"] > listBlop["Closed right"] and listBlop["Nothing"] > listBlop["Closed left"]:
+            text = ""
+            if act_started == True:
+                acts["_"] += 1
+                
+        elif listBlop["Closed right"] == listBlop["Closed left"]:
+            text = "Closed both"
+            detection_of_end = False
+            start_gesture()
+            start_act()
+            if act_started == True:
+                acts["b"] += 1 
+
+        listBlop = {"Closed left":0,"Closed right":0,"Nothing":0}
+        counter = 0
+
+        if act_started == True:
+            if time.time() > act_stop_time:
+                detect()
+                act_started = False
 
             
-    #if gaze.is_blinking():
-        #text = "Blinking"
+        if gesture_started == True and detection_of_end == False:
+            detection_of_end = True
+            gestureEnd_start_time = time.time()
+            gestureEnd_end_time = gestureEnd_start_time + gesture_end_duration
+        if gesture_started == True and detection_of_end == True:
+            detect_end()
 
-
-    
     '''  
     elif gaze.is_right():
         text = "Looking right"
@@ -144,6 +181,4 @@ while True:
         break
     #if cv2.waitKey(1) == 27:
         #break
-
-
 cv2.destroyAllWindows()

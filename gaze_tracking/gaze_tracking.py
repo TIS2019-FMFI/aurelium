@@ -26,8 +26,10 @@ class GazeTracking(object):
         self.calibrationInProgress = False
         self.numberOfTimes = 30
         self.currentTimes = 0
-        self.tresholdsRight= []
-        self.tresholdsLeft= []
+        self.thresholds = {"right":self.eye_right_threshold,"left":self.eye_left_threshold,"both":0}
+        self.thresholdsRight= []
+        self.thresholdsLeft= []
+        self.shift = 1
         
         # _face_detector is used to detect faces
         self._face_detector = dlib.get_frontal_face_detector()
@@ -50,24 +52,37 @@ class GazeTracking(object):
             return False
 
     def calibrationThreshold(self):
-        self.tresholdsRight.append(self.eye_right.blinking)
-        self.tresholdsLeft.append(self.eye_left.blinking)
+        if self.eye_right.blinking >= (self.eye_right_threshold - self.shift) and self.eye_right.blinking <= (self.eye_right_threshold + self.shift) and len(self.thresholdsRight)<self.numberOfTimes:
+            self.thresholdsRight.append(self.eye_right.blinking)
 
-    def changeTreshold(self):
-        if(self.calibrationInProgress):
+        if self.eye_left.blinking >= (self.eye_left_threshold - self.shift) and self.eye_left.blinking <= (self.eye_left_threshold + self.shift) and len(self.thresholdsLeft)<self.numberOfTimes:
+            self.thresholdsLeft.append(self.eye_left.blinking)
+
+
+    def changeThreshold(self):
+        rightEye = sum(self.thresholdsRight)/len(self.thresholdsRight)
+        leftEye = sum(self.thresholdsLeft)/len(self.thresholdsLeft)
             
-            self.eye_right_threshold = sum(self.tresholdsRight)/len(self.tresholdsRight)+2
-            self.eye_left_threshold = sum(self.tresholdsLeft)/len(self.tresholdsLeft)+2
-            self.eyes_both_threshold = (self.eye_left_threshold+self.eye_right_threshold)/2
+        self.eye_right_threshold = rightEye + rightEye
+        self.eye_left_threshold = leftEye + leftEye
+
+
+        #(self.eye_right_threshold + rightEye)/2  + (self.eye_right_threshold + rightEye)/2
+        #(self.eye_left_threshold + leftEye)/2
+
+
+        #self.eyes_both_threshold = (self.eye_right_threshold + self.eye_left_threshold)
+        #self.eye_right_threshold = self.eye_left_threshold = (self.eye_right_threshold + self.eye_left_threshold)/2
 
         print(self.eye_right_threshold,self.eye_left_threshold)
+        self.resetCalibration()
         
 
     def resetCalibration(self):
-            calibrationInProgress = False
+            self.calibrationInProgress = False
             self.currentTimes = 0
-            self.tresholdsRight= []
-            self.tresholdsLeft= []
+            self.thresholdsRight= []
+            self.thresholdsLeft= []
         
 
     def _analyze(self):
@@ -79,23 +94,17 @@ class GazeTracking(object):
             landmarks = self._predictor(frame, faces[0])            
             self.eye_left = Eye(frame, landmarks, 0, self.calibration)
             self.eye_right = Eye(frame, landmarks, 1, self.calibration)
- 
-     
+
+
+            self.calibrationThreshold()
+
+            if(len(self.thresholdsRight)==self.numberOfTimes and len(self.thresholdsLeft)==self.numberOfTimes):
+                self.changeThreshold()
+
+
             if (self.previousStateLeft is None and self.previousStateRight is None):
-                print("calibration")
-                self.calibrationInProgress = True
-
-            if(self.calibrationInProgress):
-                self.calibrationThreshold()
-                self.currentTimes+=1
-
-            if(self.currentTimes>=self.numberOfTimes):
-                self.changeTreshold()
-                self.resetCalibration()
-                self.calibrationInProgress = False
-
-            self.previousStateLeft = ""
-            self.previousStateRight = ""
+                self.eye_left_threshold = 5
+                self.eye_right_threshold = 5
                 
  
         except IndexError:

@@ -28,6 +28,7 @@ gestureEnd_stop_time = time.time()
 detection_of_end = False
 
 listBlop = {"Closed left":0,"Closed right":0,"Nothing":0}
+listValue = {"L":0,"R":0}
 counter = 0
 text = ""
 
@@ -97,46 +98,31 @@ while True:
 
     frame = gaze.annotated_frame()
 
-    rightClosed = gaze.is_closeRight()
-    leftClosed = gaze.is_closeLeft()
+    rightClosed,rightValue = gaze.is_closeRight()
+    leftClosed,leftValue = gaze.is_closeLeft()
 
     nothing = True
     
     if rightClosed:
-        #text = "Closed left"
         listBlop["Closed left"]+=1
+        if rightValue is not None and rightValue >= (gaze.eye_right_threshold - gaze.shift) and rightValue <= (gaze.eye_right_threshold + gaze.shift):
+            #listValue["L"]+=rightValue
+            gaze.addToThreshold("L",rightValue)
         nothing = False
     if leftClosed:
-        listBlop["Closed right"]+=1
+        listBlop["Closed right"]+=1       
+        if leftValue is not None and leftValue >= (gaze.eye_left_threshold - gaze.shift) and leftValue <= (gaze.eye_left_threshold + gaze.shift):
+            #listValue["R"]+=leftValue
+            gaze.addToThreshold("R",leftValue)
         nothing = False
     if nothing:
         listBlop["Nothing"]+=1
         
-        #text = "Closed right"  
-    #if rightClosed and leftClosed:   
-        #text = "Closed both"
-
-
-    #listBlop.append(text)
-
     counter += 1 
 
     if(counter==3):
-        #print(listBlop)
-        
-        if listBlop["Closed left"] > listBlop["Closed right"]:
-            text = "Closed left"
-            detection_of_end = False
-            start_act()
-            if act_started == True:
-                acts.append('l')
-        elif listBlop["Closed right"] > listBlop["Closed left"]:
-            text = "Closed right"
-            detection_of_end = False
-            start_act()
-            if act_started == True:
-                acts.append('r')
-        elif listBlop["Nothing"] > listBlop["Closed right"] and listBlop["Nothing"] > listBlop["Closed left"]:
+
+        if(listBlop["Closed right"]<listBlop["Nothing"] and listBlop["Closed left"]<listBlop["Nothing"]):
             text = ""
             if act_started == True:
                 detect_act()
@@ -145,29 +131,39 @@ while True:
                 detection_of_end = True
                 gestureEnd_start_time = time.time()
                 gestureEnd_end_time = gestureEnd_start_time + gesture_end_duration
+                
         elif listBlop["Closed right"] == listBlop["Closed left"]:
             text = "Closed both"
             detection_of_end = False
             start_act()
             if act_started == True:
                 acts.append('b')
+        
+        elif listBlop["Closed left"] > listBlop["Closed right"]:
+            text = "Closed left"
+            detection_of_end = False
+            start_act()
+            if act_started == True:
+                acts.append('l')
+                
+        elif listBlop["Closed right"] > listBlop["Closed left"]:
+            text = "Closed right"
+            detection_of_end = False
+            start_act()
+            if act_started == True:
+                acts.append('r')
 
         if detection_of_end == True:
             detect_end()
 
         listBlop = {"Closed left":0,"Closed right":0,"Nothing":0}
+        listValue = {"L":0,"R":0}
         counter = 0
 
 
+        if gaze.imageTooDark():
+            text = "Image is too dark, improve lighting"
 
-    '''  
-    elif gaze.is_right():
-        text = "Looking right"
-    elif gaze.is_left():
-        text = "Looking left"
-    elif gaze.is_center():
-        text = "Looking center"
-    '''
     cv2.putText(frame, text, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
 
     left_pupil = gaze.pupil_left_coords()

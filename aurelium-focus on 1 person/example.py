@@ -11,13 +11,16 @@ from gaze_tracking import GazeTracking
 gaze = GazeTracking()
 webcam = cv2.VideoCapture(0)
 window_name = "Demo"
-cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
-cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-gesture_end_duration = 3
-short_act_duration = 1
-long_act_duration = 2
+number_of_webcam = 0
+#cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+#cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+gesture_end_duration = 0
+short_act_duration = 0
+long_act_duration = 0
+result_display_duration = 0
 current_gesture = ""
 
+'''
 gesta = {}           # Nacitaju sa so suboru
 gesta['lrl']='Ahoj'  # gesta ako priklad po uspesnom vykonani sa vypise ahoj
 gesta['l'] ='Ahoj'   # ked bude hotove nacitanie suboru tak toto zmazat
@@ -26,9 +29,15 @@ gesta['b'] ='Ahoj'
 gesta['B']='Ahoj'
 gesta['r'] ='Ahoj'
 gesta['R']='Ahoj'
+'''
 textgesta =''
 casVypisu = 0
 koniecgesta= False
+
+
+
+gests = {}
+
 act_started = False
 acts = []
 act_start_time = time.time()
@@ -45,6 +54,34 @@ text = ""
 
 maxim =0
 
+def read_settings():
+    global number_of_webcam
+    global gesture_end_duration
+    global short_act_duration
+    global long_act_duration
+    global result_display_duration
+    with open('configuration.txt', 'r') as file:
+        number_of_webcam = float(file.readline())/1000
+        gesture_end_duration = float(file.readline())/1000
+        short_act_duration = float(file.readline())/1000
+        long_act_duration = float(file.readline())/1000
+        result_display_duration = float(file.readline())/1000
+        for row in file:
+            row = row.split('"')
+            clear = []
+            for i in row:
+                if i != '':
+                    clear.append(i)
+            gesture = clear[2].strip("\n")
+            gests[gesture] = clear[1]
+        
+        print('cislo kamery: ' , number_of_webcam)
+        print('koniec gesta cas: ' , gesture_end_duration)
+        print('dlzka kratkeho: ' , short_act_duration)
+        print('dlzka dlheho: ' , long_act_duration)
+        print('dlzka zobrazenia: ' , result_display_duration)
+        print(gests)
+        
 
 def start_act():
     global act_started
@@ -55,9 +92,12 @@ def start_act():
         act_start_time = time.time()
 
 def detect_end():
+    
     global koniecgesta
     global casVypisu
     global textgesta
+    
+    
     global gesture_started
     global current_gesture
     global detection_of_end
@@ -65,11 +105,14 @@ def detect_end():
         gesture_started = False
         act_started = False
         detection_of_end = False
-        print("gesture: " + current_gesture) # Vypisovanie gest 
-        for i in gesta:
+        print("gesture: " + current_gesture) # Vypisovanie gest
+        
+        for i in gests:
             if(i == current_gesture):
-                textgesta=gesta[i]
+                textgesta=gests[i]
                 koniecgesta= True
+                print(textgesta)
+
         current_gesture = ""
 
 def detect_act():
@@ -109,7 +152,7 @@ def detect_act():
     
         
 
-
+read_settings()
 while True:
     # We get a new frame from the webcam
     _, frame = webcam.read()
@@ -179,9 +222,13 @@ while True:
 
         if detection_of_end == True:
             detect_end()
+
+        
             if koniecgesta:
              koniecgesta = False   
              casVypisu = time.time()
+            
+             
             
             
         listBlop = {"Closed left":0,"Closed right":0,"Nothing":0}
@@ -198,10 +245,12 @@ while True:
         text = "Looking center"
      '''
      # Vypis po uspesnom vykonani gesta bude viditelny 5 sekund
-     if((time.time() - casVypisu )< 5):   
-      cv2.putText(frame, textgesta, (90, 260), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+    
+     if((time.time() - casVypisu )< 5):
+        cv2.putText(frame, textgesta, (90, 260), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
      else:
-       textgesta=""  
+           textgesta=""
+    
      
      cv2.putText(frame, text, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
 

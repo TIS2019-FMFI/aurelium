@@ -4,6 +4,7 @@ import cv2
 import dlib
 from .eye import Eye
 from .calibration import Calibration
+import numpy
 
 
 class GazeTracking(object):
@@ -36,6 +37,7 @@ class GazeTracking(object):
         self.facey2 =0
         self.maxim =0
         self.facerecognization = False
+        self.darkImageThreshold = 72
         
         # _face_detector is used to detect faces
         self._face_detector = dlib.get_frontal_face_detector()
@@ -72,15 +74,6 @@ class GazeTracking(object):
         self.eye_right_threshold = rightEye + rightEye
         self.eye_left_threshold = leftEye + leftEye
 
-
-        #(self.eye_right_threshold + rightEye)/2  + (self.eye_right_threshold + rightEye)/2
-        #(self.eye_left_threshold + leftEye)/2
-
-
-        #self.eyes_both_threshold = (self.eye_right_threshold + self.eye_left_threshold)
-        #self.eye_right_threshold = self.eye_left_threshold = (self.eye_right_threshold + self.eye_left_threshold)/2
-
-        #print(self.eye_right_threshold,self.eye_left_threshold)
         self.resetCalibration()
         
 
@@ -117,11 +110,6 @@ class GazeTracking(object):
          self.facey1=pom[tvar*4+1]
          self.facex2=pom[tvar*4+2]
          self.facey2=pom[tvar*4+3]
-        
-          
-        
-             
-        
     
         try:                    
             landmarks = self._predictor(frame, faces[tvar])            
@@ -224,22 +212,38 @@ class GazeTracking(object):
     def annotated_frame(self):
         """Returns the main frame with pupils highlighted"""
         frame = self.frame.copy()
+        if self.imageTooDark():
+            cv2.putText(frame, "Obraz je moc tmavy", (90, 260), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+            return frame
+        
         if self.facerecognization == False:
          cv2.putText(frame, "Tvar nie je", (90, 260), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)   
-        if self.pupils_located:
+
+        elif self.pupils_located:
+            
             color = (0, 255, 0)
             x_left, y_left = self.pupil_left_coords()
             x_right, y_right = self.pupil_right_coords()
+
             if(self.maxim < 0):
-             cv2.putText(frame, "Tvar nie je dostatocne velka", (90, 260), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
-            else: 
-             cv2.rectangle(frame,(self.facex1,self.facey1),(self.facex2,self.facey2),(255,0,0),2)
-            cv2.line(frame, (x_left - 5, y_left), (x_left + 5, y_left), color)
-            cv2.line(frame, (x_left, y_left - 5), (x_left, y_left + 5), color)
-            cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
-            cv2.line(frame, (x_right, y_right - 5), (x_right, y_right + 5), color)
+                cv2.putText(frame, "Tvar nie je dostatocne velka", (90, 260), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+            else:
+                cv2.rectangle(frame,(self.facex1,self.facey1),(self.facex2,self.facey2),(255,0,0),2)
+                cv2.line(frame, (x_left - 5, y_left), (x_left + 5, y_left), color)
+                cv2.line(frame, (x_left, y_left - 5), (x_left, y_left + 5), color)
+                cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
+                cv2.line(frame, (x_right, y_right - 5), (x_right, y_right + 5), color)
 
         return frame
     def vratVelkostTvare(self):
         return self.maxim
+
+    def imageTooDarkFace(self,frame):
+        cropFaceFrame = frame[self.facex1:self.facex2,self.facey1:self.facey2].copy() #v pripade zamerania sa iba na tvar
+        print(numpy.mean(frame))
+        return self.darkImageThreshold > numpy.mean(frame)
+
+    def imageTooDark(self):
+        #print(numpy.mean(self.frame))
+        return self.darkImageThreshold > numpy.mean(self.frame,dtype=numpy.float64)
 

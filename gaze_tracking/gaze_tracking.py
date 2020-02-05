@@ -2,7 +2,6 @@ from __future__ import division
 import os
 import cv2
 import dlib
-import numpy
 from .eye import Eye
 from .calibration import Calibration
 
@@ -22,12 +21,21 @@ class GazeTracking(object):
         self.eye_right_threshold = 5
         self.eyes_both_threshold = 10
         self.calibration = Calibration()
-        self.numberOfTimes = 10
+        self.previousStateLeft = None
+        self.previousStateRight = None
+        self.calibrationInProgress = False
+        self.numberOfTimes = 30
+        self.currentTimes = 0
         self.thresholds = {"right":self.eye_right_threshold,"left":self.eye_left_threshold,"both":0}
         self.thresholdsRight= []
         self.thresholdsLeft= []
-        self.darkImageThreshold = 50
-        self.shift = 2
+        self.shift = 1
+        self.facex1=0
+        self.facey1 =0
+        self.facex2 =0
+        self.facey2 =0
+        self.maxim =0
+        self.facerecognization = False
         
         # _face_detector is used to detect faces
         self._face_detector = dlib.get_frontal_face_detector()
@@ -56,24 +64,15 @@ class GazeTracking(object):
         if self.eye_left.blinking >= (self.eye_left_threshold - self.shift) and self.eye_left.blinking <= (self.eye_left_threshold + self.shift) and len(self.thresholdsLeft)<self.numberOfTimes:
             self.thresholdsLeft.append(self.eye_left.blinking)
 
-    def addToThreshold(self,eye,value):
-        if value is not None:
-            if eye == "R":
-                self.thresholdsRight.append(value)
-            elif eye == "L":
-                self.thresholdsLeft.append(value)
 
     def changeThreshold(self):
-        if len(self.thresholdsRight)==self.numberOfTimes:
-            rightEye = sum(self.thresholdsRight)/len(self.thresholdsRight) - (sum(self.thresholdsRight)/len(self.thresholdsRight))*0.15
-            self.eye_right_threshold = (self.eye_right_threshold+rightEye)/2
-            self.thresholdsRight = []
-        else:
-            leftEye = sum(self.thresholdsLeft)/len(self.thresholdsLeft) - (sum(self.thresholdsLeft)/len(self.thresholdsLeft))*0.15
-            self.eye_left_threshold = (self.eye_left_threshold+leftEye)/2
-            self.thresholdsLeft = []
+        rightEye = sum(self.thresholdsRight)/len(self.thresholdsRight)
+        leftEye = sum(self.thresholdsLeft)/len(self.thresholdsLeft)
+            
+        self.eye_right_threshold = rightEye + rightEye
+        self.eye_left_threshold = leftEye + leftEye
 
-        
+
         #(self.eye_right_threshold + rightEye)/2  + (self.eye_right_threshold + rightEye)/2
         #(self.eye_left_threshold + leftEye)/2
 
@@ -81,35 +80,72 @@ class GazeTracking(object):
         #self.eyes_both_threshold = (self.eye_right_threshold + self.eye_left_threshold)
         #self.eye_right_threshold = self.eye_left_threshold = (self.eye_right_threshold + self.eye_left_threshold)/2
 
-        print("R: ",self.eye_right_threshold,"L: ",self.eye_left_threshold)
-        #self.resetCalibration()
+        #print(self.eye_right_threshold,self.eye_left_threshold)
+        self.resetCalibration()
         
 
     def resetCalibration(self):
-        self.thresholdsRight = []
-        self.thresholdsLeft = []
+            self.calibrationInProgress = False
+            self.currentTimes = 0
+            self.thresholdsRight= []
+            self.thresholdsLeft= []
         
 
     def _analyze(self):
+        tvar = 0
+        counter =0
+        zoz = []
+        pom = []
+        self.facerecognization = False
         """Detects the face and initialize Eye objects"""
         frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         faces = self._face_detector(frame)
-
+        for f in faces:
+         self.facerecognization = True
+         counter +=1
+         pom.append(f.left())
+         pom.append(f.top())
+         pom.append(f.right())
+         pom.append(f.bottom())
+         zoz.append((f.bottom()-f.top())*(f.right()-f.left()))
+         #print(f)
+         #print(zoz)
+        if(counter >0):
+         self.maxim = max(zoz)  
+         tvar = zoz.index(self.maxim)
+         self.facex1= pom[tvar*4]
+         self.facey1=pom[tvar*4+1]
+         self.facex2=pom[tvar*4+2]
+         self.facey2=pom[tvar*4+3]
+        
+          
+        
+             
+        
+    
         try:                    
-            landmarks = self._predictor(frame, faces[0])            
+            landmarks = self._predictor(frame, faces[tvar])            
             self.eye_left = Eye(frame, landmarks, 0, self.calibration)
             self.eye_right = Eye(frame, landmarks, 1, self.calibration)
 
-            if(len(self.thresholdsRight)==self.numberOfTimes or len(self.thresholdsLeft)==self.numberOfTimes):
+
+            self.calibrationThreshold()
+
+            if(len(self.thresholdsRight)==self.numberOfTimes and len(self.thresholdsLeft)==self.numberOfTimes):
                 self.changeThreshold()
+
+
+            if (self.previousStateLeft is None and self.previousStateRight is None):
+                self.eye_left_threshold = 5
+                self.eye_right_threshold = 5
+                
  
         except IndexError:
-            self.eye_left_threshold = 5
-            self.eye_right_threshold = 5
-            self.resetCalibration()
             self.eye_left = None
             self.eye_right = None
-            
+            self.previousStateLeft = None
+            self.previousStateRight = None
+            self.resetCalibration()
           
     def refresh(self, frame):
         """Refreshes the frame and analyzes it.
@@ -178,32 +214,32 @@ class GazeTracking(object):
         """Returns true if the user close right eye"""
         if self.pupils_located:
             blinking_ratio = (self.eye_right.blinking)
-            return blinking_ratio > self.eye_right_threshold,blinking_ratio
-        return False,None
+            return blinking_ratio > self.eye_right_threshold
     def is_closeLeft(self):
         """Returns true if the user close left eye"""
         if self.pupils_located:
             blinking_ratio = (self.eye_left.blinking)
-            #print("try",blinking_ratio,self.eye_left_threshold)
-            return blinking_ratio > self.eye_left_threshold,blinking_ratio
-        return False,None
-    def imageTooDark(self):
-        frame = cv2.cvtColor(self.frame.copy(),cv2.COLOR_BGR2HSV)
-        #print(numpy.mean(frame))
-        return self.darkImageThreshold > numpy.mean(frame)
-        
+            return blinking_ratio > self.eye_left_threshold
+
     def annotated_frame(self):
         """Returns the main frame with pupils highlighted"""
         frame = self.frame.copy()
-
+        if self.facerecognization == False:
+         cv2.putText(frame, "Tvar nie je", (90, 260), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)   
         if self.pupils_located:
             color = (0, 255, 0)
             x_left, y_left = self.pupil_left_coords()
             x_right, y_right = self.pupil_right_coords()
+            if(self.maxim < 0):
+             cv2.putText(frame, "Tvar nie je dostatocne velka", (90, 260), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
+            else: 
+             cv2.rectangle(frame,(self.facex1,self.facey1),(self.facex2,self.facey2),(255,0,0),2)
             cv2.line(frame, (x_left - 5, y_left), (x_left + 5, y_left), color)
             cv2.line(frame, (x_left, y_left - 5), (x_left, y_left + 5), color)
             cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
             cv2.line(frame, (x_right, y_right - 5), (x_right, y_right + 5), color)
 
         return frame
+    def vratVelkostTvare(self):
+        return self.maxim
 

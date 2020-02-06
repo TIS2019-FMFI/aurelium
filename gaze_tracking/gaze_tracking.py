@@ -20,7 +20,7 @@ class GazeTracking(object):
         self.eye_right = None
         self.eye_left_threshold = 5
         self.eye_right_threshold = 5
-        self.eyes_both_threshold = 10
+        self.eyes_both_threshold = 10.5
         self.calibration = Calibration()
         self.previousStateLeft = None
         self.previousStateRight = None
@@ -81,6 +81,8 @@ class GazeTracking(object):
             self.eye_left_threshold = (self.eye_left_threshold+leftEye)/2
             self.thresholdsLeft = []
 
+        self.eyes_both_threshold = self.eye_right_threshold + self.eye_left_threshold
+
         print("R: ",self.eye_right_threshold,"L: ",self.eye_left_threshold)
 
         
@@ -121,24 +123,17 @@ class GazeTracking(object):
             self.eye_left = Eye(frame, landmarks, 0, self.calibration)
             self.eye_right = Eye(frame, landmarks, 1, self.calibration)
 
-
-            self.calibrationThreshold()
-
-            if(len(self.thresholdsRight)==self.numberOfTimes and len(self.thresholdsLeft)==self.numberOfTimes):
+            if(len(self.thresholdsRight)==self.numberOfTimes or len(self.thresholdsLeft)==self.numberOfTimes):
                 self.changeThreshold()
-
-
-            if (self.previousStateLeft is None and self.previousStateRight is None):
-                self.eye_left_threshold = 5
-                self.eye_right_threshold = 5
-                
  
         except IndexError:
+            self.eye_left_threshold = 5
+            self.eye_right_threshold = 5
+            self.eyes_both_threshold = 10.5
+            self.resetCalibration()
             self.eye_left = None
             self.eye_right = None
-            self.previousStateLeft = None
-            self.previousStateRight = None
-            self.resetCalibration()
+            
           
     def refresh(self, frame):
         """Refreshes the frame and analyzes it.

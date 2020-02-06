@@ -7,7 +7,7 @@ from gaze_tracking import GazeTracking
 import cv2
 import time
 
-simg = cv2.imread("both_closed.png") # Nacitany obrazok
+simg = cv2.imread("graphics/lcrc1.png") # Nacitany obrazok
 alpha = 0.0 # priesvitnost obrazku
 
 gaze = GazeTracking()

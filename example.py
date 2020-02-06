@@ -176,7 +176,7 @@ while True:
     frame = gaze.annotated_frame()
     maxim = gaze.vratVelkostTvare()
     
-    
+    #if (maxim > 23000):
     rightClosed,rightValue = gaze.is_closeRight()
     leftClosed,leftValue = gaze.is_closeLeft()
 

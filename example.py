@@ -7,17 +7,7 @@ from gaze_tracking import GazeTracking
 import cv2
 import time
 
-simg = cv2.imread("graphics/lcrc1.png") # Nacitany obrazok
-alpha = 0.0 # priesvitnost obrazku
-
-gaze = GazeTracking()
-webcam = cv2.VideoCapture(0)
-window_name = "Demo"
 number_of_webcam = 0
-
-
-#cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
-#cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 gesture_end_duration = 0
 short_act_duration = 0
 long_act_duration = 0
@@ -63,7 +53,7 @@ def read_settings():
     global long_act_duration
     global result_display_duration
     with open('configuration.txt', 'r') as file:
-        number_of_webcam = float(file.readline())/1000
+        number_of_webcam = float(file.readline())
         gesture_end_duration = float(file.readline())/1000
         short_act_duration = float(file.readline())/1000
         long_act_duration = float(file.readline())/1000
@@ -77,11 +67,11 @@ def read_settings():
             gesture = clear[2].strip("\n")
             gests[gesture] = clear[1]
         
-        print('cislo kamery: ' , number_of_webcam)
-        print('koniec gesta cas: ' , gesture_end_duration)
-        print('dlzka kratkeho: ' , short_act_duration)
-        print('dlzka dlheho: ' , long_act_duration)
-        print('dlzka zobrazenia: ' , result_display_duration)
+        print('cislo kamery: ' , int(number_of_webcam))
+        print('koniec gesta cas: ' , gesture_end_duration,"s")
+        print('dlzka kratkeho: ' , short_act_duration,"s")
+        print('dlzka dlheho: ' , long_act_duration,"s")
+        print('dlzka zobrazenia: ' , result_display_duration,"s")
         print(gests)
         
 
@@ -152,9 +142,17 @@ def detect_act():
             current_gesture += max_act
         print("act: " + max_act)
     
-        
-
 read_settings()
+simg = cv2.imread("graphics/lcrc1.png") # Nacitany obrazok
+alpha = 0.0 # priesvitnost obrazku
+
+gaze = GazeTracking()
+webcam = cv2.VideoCapture(0)
+window_name = "Aurelium"
+
+cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
 while True:
     # We get a new frame from the webcam
     _, frame = webcam.read()
@@ -267,9 +265,7 @@ while True:
     cv2.putText(frame, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
     cv2.putText(frame, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
 
-    cv2.imshow("Demo", frame)
+    cv2.imshow("Aurelium", frame)
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
-    #if cv2.waitKey(1) == 27:
-        #break
 cv2.destroyAllWindows()

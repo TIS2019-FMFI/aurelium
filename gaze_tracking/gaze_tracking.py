@@ -20,7 +20,7 @@ class GazeTracking(object):
         self.eye_right = None
         self.eye_left_threshold = 5
         self.eye_right_threshold = 5
-        self.eyes_both_threshold = 10.5
+        self.eyes_both_threshold = 10
         self.calibration = Calibration()
         self.previousStateLeft = None
         self.previousStateRight = None
@@ -34,8 +34,8 @@ class GazeTracking(object):
         self.thresholdsRight= []
         self.thresholdsLeft= []
         self.darkImageThreshold = 72
-        self.shift = 2
-        self.numberOfTimes = 10
+        self.shift = 1
+        self.numberOfTimes = 20
         
         # _face_detector is used to detect faces
         self._face_detector = dlib.get_frontal_face_detector()
@@ -73,17 +73,15 @@ class GazeTracking(object):
 
     def changeThreshold(self):
         if len(self.thresholdsRight)==self.numberOfTimes:
-            rightEye = sum(self.thresholdsRight)/len(self.thresholdsRight) - (sum(self.thresholdsRight)/len(self.thresholdsRight))*0.15
+            rightEye = sum(self.thresholdsRight)/len(self.thresholdsRight) + (sum(self.thresholdsRight)/len(self.thresholdsRight))*0.15
             self.eye_right_threshold = (self.eye_right_threshold+rightEye)/2
             self.thresholdsRight = []
         else:
-            leftEye = sum(self.thresholdsLeft)/len(self.thresholdsLeft) - (sum(self.thresholdsLeft)/len(self.thresholdsLeft))*0.15
+            leftEye = sum(self.thresholdsLeft)/len(self.thresholdsLeft) + (sum(self.thresholdsLeft)/len(self.thresholdsLeft))*0.15
             self.eye_left_threshold = (self.eye_left_threshold+leftEye)/2
             self.thresholdsLeft = []
 
-        self.eyes_both_threshold = self.eye_right_threshold + self.eye_left_threshold
-
-        print("R: ",self.eye_right_threshold,"L: ",self.eye_left_threshold)
+        self.eyes_both_threshold = (self.eye_right_threshold + self.eye_left_threshold) + (self.eye_right_threshold + self.eye_left_threshold)*0.22
 
         
     def resetCalibration(self):
@@ -129,7 +127,7 @@ class GazeTracking(object):
         except IndexError:
             self.eye_left_threshold = 5
             self.eye_right_threshold = 5
-            self.eyes_both_threshold = 10.5
+            self.eyes_both_threshold = 10
             self.resetCalibration()
             self.eye_left = None
             self.eye_right = None
@@ -208,7 +206,6 @@ class GazeTracking(object):
         """Returns true if the user close left eye"""
         if self.pupils_located:
             blinking_ratio = (self.eye_left.blinking)
-            #print("try",blinking_ratio,self.eye_left_threshold)
             return blinking_ratio > self.eye_left_threshold,blinking_ratio
         return False,None
 

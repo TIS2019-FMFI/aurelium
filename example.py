@@ -3,9 +3,43 @@ Demonstration of the GazeTracking library.
 Check the README.md for complete documentation.
 """
 
+from PIL import Image
 from gaze_tracking import GazeTracking
 import cv2
 import time
+import ctypes
+
+user32 = ctypes.windll.user32
+screeensize = user32.GetSystemMetrics(0),user32.GetSystemMetrics(1)
+width = screeensize[0]
+height = screeensize[1]
+
+img_width = width//10 + 30
+img_height = height//10
+dim = (img_width,img_height)
+alpha = 0.0 # priesvitnost obrazku
+
+closedBothShort = cv2.imread("graphics/lcrc1.png") 
+closedBothShort = cv2.resize(closedBothShort, dim, interpolation = cv2.INTER_AREA)
+closedBothLong = cv2.imread("graphics/lcrc2.png") 
+closedBothLong = cv2.resize(closedBothLong, dim, interpolation = cv2.INTER_AREA)
+
+closedLeftShort = cv2.imread("graphics/lcro1.png") 
+closedLeftShort = cv2.resize(closedLeftShort, dim, interpolation = cv2.INTER_AREA)
+closedLeftLong = cv2.imread("graphics/lcro2.png") 
+closedLeftLong = cv2.resize(closedLeftLong, dim, interpolation = cv2.INTER_AREA)
+
+closedRightShort = cv2.imread("graphics/lorc1.png") 
+closedRightShort = cv2.resize(closedRightShort, dim, interpolation = cv2.INTER_AREA)
+closedRightLong = cv2.imread("graphics/lorc2.png") 
+closedRightLong = cv2.resize(closedRightLong, dim, interpolation = cv2.INTER_AREA)
+
+openBothShort = cv2.imread("graphics/loro1.png") 
+openBothShort = cv2.resize(openBothShort, dim, interpolation = cv2.INTER_AREA)
+openBothLong = cv2.imread("graphics/loro2.png") 
+openBothLong = cv2.resize(openBothLong, dim, interpolation = cv2.INTER_AREA)
+
+
 
 number_of_webcam = 0
 gesture_end_duration = 0
@@ -39,7 +73,7 @@ gestureEnd_start_time = time.time()
 gestureEnd_stop_time = time.time()
 detection_of_end = False
 
-listBlop = {"Closed left":0,"Closed right":0,"Nothing":0}
+listValue = {"Closed left":0,"Closed right":0,"Nothing":0}
 counter = 0
 text = ""
 
@@ -143,29 +177,19 @@ def detect_act():
         print("act: " + max_act)
     
 read_settings()
-simg = cv2.imread("graphics/lcrc1.png") # Nacitany obrazok
-alpha = 0.0 # priesvitnost obrazku
 
 gaze = GazeTracking()
 webcam = cv2.VideoCapture(0)
 window_name = "Aurelium"
 
-cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
-cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+#cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+#cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 while True:
     # We get a new frame from the webcam
     _, frame = webcam.read()
     frame = cv2.flip(frame,1)
 
-    
-    added_image = cv2.addWeighted(frame[0:180,0:180,:],alpha,simg[0:180,0:180,:],1-alpha,0)
-    # frame [0:180,0:180,:] netreba menit  
-    # simg [0:180,0:180,:] urcuje vysku a sirku obrazka teraz je to 180 180 
-    frame[20:200,420:600] = added_image # umiestnenie obrazka na obrazovke
-    # Pri vsetkych 3 premennych musi byt rozdiel medzi druhym a prvym cislom rovnaky
-
-    
     # We send this frame to GazeTracking to analyze it
     try:
      gaze.refresh(frame)
@@ -174,32 +198,30 @@ while True:
     frame = gaze.annotated_frame()
     maxim = gaze.vratVelkostTvare()
     
-    #if (maxim > 23000):
+    #if (maxim > 0):
     rightClosed,rightValue = gaze.is_closeRight()
     leftClosed,leftValue = gaze.is_closeLeft()
 
     nothing = True
     
     if rightClosed:
-        listBlop["Closed left"]+=1
+        listValue["Closed right"]+=1 
         if rightValue is not None and rightValue >= (gaze.eye_right_threshold - gaze.shift) and rightValue <= (gaze.eye_right_threshold + gaze.shift):
-            #listValue["L"]+=rightValue
-            gaze.addToThreshold("L",rightValue)
+            gaze.addToThreshold("R",rightValue)
         nothing = False
     if leftClosed:
-        listBlop["Closed right"]+=1       
+        listValue["Closed left"]+=1
         if leftValue is not None and leftValue >= (gaze.eye_left_threshold - gaze.shift) and leftValue <= (gaze.eye_left_threshold + gaze.shift):
-            #listValue["R"]+=leftValue
-            gaze.addToThreshold("R",leftValue)
+            gaze.addToThreshold("L",leftValue)
         nothing = False
     if nothing:
-        listBlop["Nothing"]+=1
+        listValue["Nothing"]+=1
         
     counter += 1 
 
     if(counter==3):
 
-        if(listBlop["Closed right"]<listBlop["Nothing"] and listBlop["Closed left"]<listBlop["Nothing"]):
+        if(listValue["Closed right"]<listValue["Nothing"] and listValue["Closed left"]<listValue["Nothing"]):
             text = ""
             if act_started == True:
                 detect_act()
@@ -209,21 +231,21 @@ while True:
                 gestureEnd_start_time = time.time()
                 gestureEnd_end_time = gestureEnd_start_time + gesture_end_duration
                 
-        elif listBlop["Closed right"] == listBlop["Closed left"]:
+        elif listValue["Closed right"] == listValue["Closed left"]:
             text = "Closed both"
             detection_of_end = False
             start_act()
             if act_started == True:
                 acts.append('b')
         
-        elif listBlop["Closed left"] > listBlop["Closed right"]:
+        elif listValue["Closed left"] > listValue["Closed right"]:
             text = "Closed left"
             detection_of_end = False
             start_act()
             if act_started == True:
                 acts.append('l')
                 
-        elif listBlop["Closed right"] > listBlop["Closed left"]:
+        elif listValue["Closed right"] > listValue["Closed left"]:
             text = "Closed right"
             detection_of_end = False
             start_act()
@@ -237,8 +259,7 @@ while True:
              koniecgesta = False   
              casVypisu = time.time()
 
-        listBlop = {"Closed left":0,"Closed right":0,"Nothing":0}
-        listValue = {"L":0,"R":0}
+        listValue = {"Closed left":0,"Closed right":0,"Nothing":0}
         counter = 0
             
      # Vypis po uspesnom vykonani gesta bude viditelny 5 sekund
@@ -249,21 +270,24 @@ while True:
     else:
         textgesta=""
 
-    
-    '''
     if text== "Closed left":
-        added_image = cv2.addWeighted(frame[150:350,150:350,:],alpha,simg[0:200,0:200,:],1-alpha,0)
-        frame[20:220,150:350] = added_image
+        added_image = cv2.addWeighted(frame[0:img_height,0:img_width,:],alpha,closedLeftShort[0:img_height,0:img_width,:],1-alpha,0)
+        frame[20:20+img_height,420:420+img_width] = added_image 
+    elif text =="Closed right":
+        added_image = cv2.addWeighted(frame[0:img_height,0:img_width,:],alpha,closedRightShort[0:img_height,0:img_width,:],1-alpha,0)
+        frame[20:20+img_height,420:420+img_width] = added_image
+    elif text =="Closed both":
+        added_image = cv2.addWeighted(frame[0:img_height,0:img_width,:],alpha,closedBothShort[0:img_height,0:img_width,:],1-alpha,0)
+        frame[20:20+img_height,420:420+img_width] = added_image
     else:
         added_image = None
-    '''
 
     cv2.putText(frame, text, (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (147, 58, 31), 2)
 
     left_pupil = gaze.pupil_left_coords()
     right_pupil = gaze.pupil_right_coords()
-    cv2.putText(frame, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
-    cv2.putText(frame, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
+    #cv2.putText(frame, "Left pupil:  " + str(left_pupil), (90, 130), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
+    #cv2.putText(frame, "Right pupil: " + str(right_pupil), (90, 165), cv2.FONT_HERSHEY_DUPLEX, 0.9, (147, 58, 31), 1)
 
     cv2.imshow("Aurelium", frame)
     if cv2.waitKey(1) & 0xFF == ord("q"):

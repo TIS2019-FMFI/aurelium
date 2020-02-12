@@ -48,7 +48,7 @@ class Eye(object):
         height, width = frame.shape[:2]
         black_frame = np.zeros((height, width), np.uint8)
         mask = np.full((height, width), 255, np.uint8)
-        cv2.fillPoly(mask, [region], (0, 0, 0))
+        cv2.fillPoly(mask, [region], (255, 255, 255))
         eye = cv2.bitwise_not(black_frame, frame.copy(), mask=mask)
 
         # Cropping on the eye

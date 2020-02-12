@@ -40,7 +40,7 @@ class Program:
         self.gesture_end_stop_time = time.time()
         self.gests = dict()
         self.detection_of_end = False
-        self.list_blob = {"Closed left": 0, "Closed right": 0, "Neither": 0}
+        self.list_Value = {"Closed left": 0, "Closed right": 0, "Neither": 0}
         self.counter = 0
         self.time_of_output = 0
 
@@ -184,21 +184,21 @@ class Program:
         neither = True
 
         if right_is_closed:
-            self.list_blob["Closed left"] += 1
+            self.list_Value["Closed right"] += 1
             if (right_value is not None and
                     (self.gaze.right_eye_threshold + self.gaze.shift) >= right_value >= (
                             self.gaze.right_eye_threshold - self.gaze.shift)):
-                self.gaze.add_to_threshold("L", right_value)
+                self.gaze.add_to_threshold("R", right_value)
             neither = False
         if left_is_closed:
-            self.list_blob["Closed right"] += 1
+            self.list_Value["Closed left"] += 1
             if (left_value is not None and
                     (self.gaze.left_eye_threshold + self.gaze.shift) >= left_value >= (
                             self.gaze.left_eye_threshold - self.gaze.shift)):
-                self.gaze.add_to_threshold("R", left_value)
+                self.gaze.add_to_threshold("L", left_value)
             neither = False
         if neither is True:
-            self.list_blob["Neither"] += 1
+            self.list_Value["Neither"] += 1
 
     def which_act(self):
         self.counter += 1
@@ -206,7 +206,7 @@ class Program:
         if self.counter == 3:
             self.text = ""
 
-            if self.list_blob["Closed right"] < self.list_blob["Neither"] > self.list_blob["Closed left"]:
+            if self.list_Value["Closed right"] < self.list_Value["Neither"] > self.list_Value["Closed left"]:
                 self.text = ""
                 if self.act_started is True:
                     self.detect_act()
@@ -217,19 +217,19 @@ class Program:
                     self.detection_of_end = True
                     self.gesture_end_start_time = time.time()
                     self.gesture_end_stop_time = self.gesture_end_start_time + self.gesture_end_duration
-            elif self.list_blob["Closed right"] == self.list_blob["Closed left"]:
+            elif self.list_Value["Closed right"] == self.list_Value["Closed left"]:
                 self.text = "Closed both"
                 self.detection_of_end = False
                 self.start_act()
                 if self.act_started is True:
                     self.acts.append("b")
-            elif self.list_blob["Closed right"] < self.list_blob["Closed left"]:
+            elif self.list_Value["Closed right"] < self.list_Value["Closed left"]:
                 self.text = "Closed left"
                 self.detection_of_end = False
                 self.start_act()
                 if self.act_started is True:
                     self.acts.append("l")
-            elif self.list_blob["Closed right"] > self.list_blob["Closed left"]:
+            elif self.list_Value["Closed right"] > self.list_Value["Closed left"]:
                 self.text = "Closed left"
                 self.detection_of_end = False
                 self.start_act()
@@ -242,7 +242,7 @@ class Program:
                     self.act_ended = True
                     self.time_of_output = time.time()
 
-            self.list_blob = {"Closed left": 0, "Closed right": 0, "Neither": 0}
+            self.list_Value = {"Closed left": 0, "Closed right": 0, "Neither": 0}
             self.counter = 0
 
             if self.gaze.image_too_dark():

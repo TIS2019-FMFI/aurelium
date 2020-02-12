@@ -92,7 +92,7 @@ class GazeTracking(object):
         self.eyes_both_threshold = (self.right_eye_threshold + self.left_eye_threshold) + (
                 self.right_eye_threshold + self.left_eye_threshold) * 0.22
 
-        print(str(self.right_eye_threshold) + " " + str(self.left_eye_threshold))
+        #print(str(self.right_eye_threshold) + " " + str(self.left_eye_threshold))
 
     def _analyze(self):
         face = 0

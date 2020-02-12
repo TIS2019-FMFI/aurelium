@@ -1,1 +1,1 @@
-Vytváranie software pre zážitkové centrum vedy Aurelium.
+Vytváranie systému na snímanie žmurkania

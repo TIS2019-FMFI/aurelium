@@ -2,7 +2,6 @@
 3000
 1000
 2000
-3000
-"pozdrav""Ahoj"BB
-"lave dlhe""Som hladny"L
-"prave kratke 2x"Paci sa mi tato aplikacia"rr
+1000
+"pozdrav"Ahoj"BB
+"lave dlhe"Som hladny"L

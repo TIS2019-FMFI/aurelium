@@ -5,4 +5,3 @@
 1000
 "pozdrav"Ahoj"BB
 "lave dlhe"Som hladny"L
-"prave kratke 2x"Paci sa mi tato aplikacia"rr

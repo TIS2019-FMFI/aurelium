@@ -6,8 +6,6 @@ from .eye import Eye
 from .calibration import Calibration
 import numpy
 
-
-
 class GazeTracking(object):
     """
     This class tracks the user's gaze.
@@ -19,6 +17,7 @@ class GazeTracking(object):
         self.frame = None
         self.eye_left = None
         self.eye_right = None
+
         self.left_eye_threshold = 5
         self.right_eye_threshold = 5
         self.eyes_both_threshold = 10
@@ -57,6 +56,7 @@ class GazeTracking(object):
         except Exception:
             return False
 
+
     def calibration_threshold(self):
         if (self.right_eye_threshold - self.shift) <= self.eye_right.blinking <= (
                 self.right_eye_threshold + self.shift) and len(self.thresholdsRight) < self.numberOfTimes:
@@ -67,11 +67,13 @@ class GazeTracking(object):
             self.thresholdsLeft.append(self.eye_left.blinking)
 
     def add_to_threshold(self, eye, value):
+
         if value is not None:
             if eye == "R":
                 self.thresholdsRight.append(value)
             elif eye == "L":
                 self.thresholdsLeft.append(value)
+
 
     def reset_calibration(self):
         self.thresholdsRight = []
@@ -98,10 +100,12 @@ class GazeTracking(object):
         zoz = []
         pom = []
         self.face_recognition = False
+        
         """Detects the face and initialize Eye objects"""
         frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         faces = self._face_detector(frame)
         for f in faces:
+
             self.face_recognition = True
             counter += 1
             pom.append(f.left())
@@ -133,6 +137,7 @@ class GazeTracking(object):
             self.eye_left = None
             self.eye_right = None
 
+
     def refresh(self, frame):
         """Refreshes the frame and analyzes it.
 
@@ -147,14 +152,18 @@ class GazeTracking(object):
         if self.pupils_located:
             x = self.eye_left.origin[0] + self.eye_left.pupil.x
             y = self.eye_left.origin[1] + self.eye_left.pupil.y
+
             return x, y
+
 
     def pupil_right_coords(self):
         """Returns the coordinates of the right pupil"""
         if self.pupils_located:
             x = self.eye_right.origin[0] + self.eye_right.pupil.x
             y = self.eye_right.origin[1] + self.eye_right.pupil.y
+
             return x, y
+
 
     def horizontal_ratio(self):
         """Returns a number between 0.0 and 1.0 that indicates the
@@ -215,18 +224,13 @@ class GazeTracking(object):
         """Returns the main frame with pupils highlighted"""
         frame = self.frame.copy()
 
+
         if self.pupils_located:
             if self.maxim < 23000:
                 cv2.putText(frame, "Tvar nie je dostatocne velka", (90, 260), cv2.FONT_HERSHEY_DUPLEX, 1.6,
                             (255, 255, 255), 2)
             else:
                 cv2.rectangle(frame, (self.face_x1, self.face_y1), (self.face_x2, self.face_y2), (255, 255, 255), 2)
-                '''
-                cv2.line(frame, (x_left - 5, y_left), (x_left + 5, y_left), color)
-                cv2.line(frame, (x_left, y_left - 5), (x_left, y_left + 5), color)
-                cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
-                cv2.line(frame, (x_right, y_right - 5), (x_right, y_right + 5), color)
-                '''
 
         return frame
 

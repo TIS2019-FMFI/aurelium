@@ -1,1 +1,1 @@
-Vytváranie systému na snímanie žmurkania.
+Vytváranie systému na snímanie žmurkania

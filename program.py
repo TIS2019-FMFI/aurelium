@@ -18,8 +18,8 @@ class Program:
         self.screen_height = int(self.webcam.get(4))
 
         window_name = "Aurelium"
-        #cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
-        #cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+        cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         self.dim = (self.img_width, self.img_height)
 
@@ -40,7 +40,7 @@ class Program:
         self.gesture_end_stop_time = time.time()
         self.gests = dict()
         self.detection_of_end = False
-        self.list_Value = {"Closed left": 0, "Closed right": 0, "Neither": 0}
+        self.list_of_acts = {"Closed left": 0, "Closed right": 0, "Neither": 0}
         self.counter = 0
         self.time_of_output = 0
 
@@ -161,17 +161,17 @@ class Program:
             self.which_act()
 
             if (time.time() - self.time_of_output) < self.result_display_duration:
-                cv2.putText(self.frame, self.current_gesture, (0, 50), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 0), 2)
+                cv2.putText(self.frame, self.current_gesture, (0, 50), cv2.FONT_HERSHEY_DUPLEX, 1.6, (255, 255, 255), 2)
             else:
                 self.current_gesture = ""
 
             self.display_act()
 
             cv2.putText(self.frame, self.text, (self.screen_width // 2 + 100, self.screen_height - 10),
-                        cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 0), 2)
+                        cv2.FONT_HERSHEY_DUPLEX, 1.6, (255, 255, 255), 2)
             if self.gaze.face_recognition is False:
                 cv2.putText(self.frame, "Neviem najst tvar", (self.screen_width // 2 + 100, self.screen_height - 60),
-                            cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 0), 2)
+                            cv2.FONT_HERSHEY_DUPLEX, 1.6, (255, 255, 255), 2)
 
             cv2.imshow("Aurelium", self.frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -183,22 +183,22 @@ class Program:
 
         neither = True
 
-        if right_is_closed:
-            self.list_Value["Closed right"] += 1
-            if (right_value is not None and
-                    (self.gaze.right_eye_threshold + self.gaze.shift) >= right_value >= (
-                            self.gaze.right_eye_threshold - self.gaze.shift)):
-                self.gaze.add_to_threshold("R", right_value)
-            neither = False
         if left_is_closed:
-            self.list_Value["Closed left"] += 1
-            if (left_value is not None and
-                    (self.gaze.left_eye_threshold + self.gaze.shift) >= left_value >= (
+            self.list_of_acts["Closed left"] += 1
+            if (right_value is not None and
+                    (self.gaze.left_eye_threshold + self.gaze.shift) >= right_value >= (
                             self.gaze.left_eye_threshold - self.gaze.shift)):
-                self.gaze.add_to_threshold("L", left_value)
+                self.gaze.add_to_threshold("L", right_value)
+            neither = False
+        if right_is_closed:
+            self.list_of_acts["Closed right"] += 1
+            if (left_value is not None and
+                    (self.gaze.right_eye_threshold + self.gaze.shift) >= left_value >= (
+                            self.gaze.right_eye_threshold - self.gaze.shift)):
+                self.gaze.add_to_threshold("R", left_value)
             neither = False
         if neither is True:
-            self.list_Value["Neither"] += 1
+            self.list_of_acts["Neither"] += 1
 
     def which_act(self):
         self.counter += 1
@@ -206,7 +206,7 @@ class Program:
         if self.counter == 3:
             self.text = ""
 
-            if self.list_Value["Closed right"] < self.list_Value["Neither"] > self.list_Value["Closed left"]:
+            if self.list_of_acts["Closed right"] < self.list_of_acts["Neither"] > self.list_of_acts["Closed left"]:
                 self.text = ""
                 if self.act_started is True:
                     self.detect_act()
@@ -217,19 +217,19 @@ class Program:
                     self.detection_of_end = True
                     self.gesture_end_start_time = time.time()
                     self.gesture_end_stop_time = self.gesture_end_start_time + self.gesture_end_duration
-            elif self.list_Value["Closed right"] == self.list_Value["Closed left"]:
+            elif self.list_of_acts["Closed right"] == self.list_of_acts["Closed left"]:
                 self.text = "Closed both"
                 self.detection_of_end = False
                 self.start_act()
                 if self.act_started is True:
                     self.acts.append("b")
-            elif self.list_Value["Closed right"] < self.list_Value["Closed left"]:
+            elif self.list_of_acts["Closed right"] < self.list_of_acts["Closed left"]:
                 self.text = "Closed left"
                 self.detection_of_end = False
                 self.start_act()
                 if self.act_started is True:
                     self.acts.append("l")
-            elif self.list_Value["Closed right"] > self.list_Value["Closed left"]:
+            elif self.list_of_acts["Closed right"] > self.list_of_acts["Closed left"]:
                 self.text = "Closed left"
                 self.detection_of_end = False
                 self.start_act()
@@ -242,7 +242,7 @@ class Program:
                     self.act_ended = True
                     self.time_of_output = time.time()
 
-            self.list_Value = {"Closed left": 0, "Closed right": 0, "Neither": 0}
+            self.list_of_acts = {"Closed left": 0, "Closed right": 0, "Neither": 0}
             self.counter = 0
 
             if self.gaze.image_too_dark():

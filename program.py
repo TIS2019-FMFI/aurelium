@@ -18,8 +18,8 @@ class Program:
         self.screen_height = int(self.webcam.get(4))
 
         window_name = "Aurelium"
-        cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
-        cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        #cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+        #cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         self.dim = (self.img_width, self.img_height)
 

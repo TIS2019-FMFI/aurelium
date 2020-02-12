@@ -111,8 +111,6 @@ class GazeTracking(object):
             pom.append(f.right())
             pom.append(f.bottom())
             zoz.append((f.bottom() - f.top()) * (f.right() - f.left()))
-            # print(f)
-            # print(zoz)
         if counter > 0:
             self.maxim = max(zoz)
             face = zoz.index(self.maxim)
@@ -212,7 +210,6 @@ class GazeTracking(object):
         """Returns true if the user closes left eye"""
         if self.pupils_located:
             blinking_ratio = self.eye_left.blinking
-            # print(blinking_ratio)
             return blinking_ratio > self.left_eye_threshold, blinking_ratio
         return False, None
 
@@ -239,9 +236,9 @@ class GazeTracking(object):
         return self.maxim
 
     def image_too_dark(self):
-        if self.face_x1 >= 0 and self.face_x2 >= 0 and self.face_y1 >= 0 and self.face_y2 >= 0:
-            frame = self.frame[self.face_x1:self.face_x2, self.face_y1:self.face_y2].copy()
+        #if self.face_x1 >= 0 and self.face_x2 >= 0 and self.face_y1 >= 0 and self.face_y2 >= 0:
+            #frame = self.frame[self.face_x1:self.face_x2, self.face_y1:self.face_y2].copy()
             # in case of focusing on the face only
-        else:
-            frame = self.frame.copy()
+        #else:
+        frame = self.frame.copy()
         return self.darkImageThreshold > numpy.mean(frame, dtype=numpy.float64)

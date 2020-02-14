@@ -11,8 +11,33 @@ class Program:
         self.img_width = user32.GetSystemMetrics(0) // 5
         self.img_height = self.img_width // 2
 
-        self.webcam = cv2.VideoCapture(0)
-        self.webcam.set(3, user32.GetSystemMetrics(0))
+        self.act = ""
+        self.acts = []
+        self.act_time = 0
+        self.act_started = False
+        self.act_ended = True
+        self.act_start_time = time.time()
+        self.act_stop_time = time.time()
+        self.current_gesture = ""
+        self.gesture_text = ""
+        self.end_of_gesture = False
+        self.gesture_end_start_time = time.time()
+        self.gesture_end_stop_time = time.time()
+        self.gests = dict()
+        self.detection_of_end = False
+        self.list_of_acts = {"Closed left": 0, "Closed right": 0, "Neither": 0}
+        self.counter = 0
+        self.time_of_output = 0
+        self.end_of_display_image = True
+        self.current_act = ""
+
+        self.read_settings()
+
+        self.gaze = GazeTracking()
+
+        self.webcam = cv2.VideoCapture(self.webcam_number)
+        self.webcam.set(3, self.webcam_width)
+        self.webcam.set(4, self.webcam_height)
 
         self.screen_width = int(self.webcam.get(3))
         self.screen_height = int(self.webcam.get(4))
@@ -24,29 +49,6 @@ class Program:
         self.dim = (self.img_width, self.img_height)
 
         self.load_graphics()
-
-        self.text = ""
-        self.act = ""
-        self.acts = []
-        self.act_time = 0
-        self.act_started = False
-        self.act_ended = True
-        self.act_start_time = time.time()
-        self.act_stop_time = time.time()
-        self.current_gesture = ""
-        self.start_of_gesture = False
-        self.end_of_gesture = False
-        self.gesture_end_start_time = time.time()
-        self.gesture_end_stop_time = time.time()
-        self.gests = dict()
-        self.detection_of_end = False
-        self.list_of_acts = {"Closed left": 0, "Closed right": 0, "Neither": 0}
-        self.counter = 0
-        self.time_of_output = 0
-
-        self.read_settings()
-
-        self.gaze = GazeTracking()
 
         self.run()
 
@@ -75,7 +77,9 @@ class Program:
 
     def read_settings(self):
         with open('configuration.txt', 'r') as file:
-            self.webcam_number = float(file.readline()) / 1000
+            self.webcam_number = int(file.readline())
+            self.webcam_width = int(file.readline())
+            self.webcam_height = int(file.readline())
             self.gesture_end_duration = float(file.readline()) / 1000
             self.short_act_duration = float(file.readline()) / 1000
             self.long_act_duration = float(file.readline()) / 1000
@@ -88,6 +92,7 @@ class Program:
                         clear.append(i)
                 gesture = clear[2].strip("\n")
                 self.gests[gesture] = clear[1]
+        print(self.gests)
 
     def start_act(self):
         if self.act_started is False:
@@ -131,16 +136,14 @@ class Program:
 
     def detect_end(self):
         if time.time() > self.gesture_end_stop_time:
-            self.start_of_gesture = False
-            self.act_started = False
             self.detection_of_end = False
             print("gesture: " + self.current_gesture)
 
             for i in self.gests:
                 if i == self.current_gesture:
-                    self.text_of_gesture = self.gests[i]
+                    self.gesture_text = self.gests[i]
                     self.end_of_gesture = True
-                    print(self.text_of_gesture)
+                    print(self.gesture_text)
 
             self.current_gesture = ""
 
@@ -152,26 +155,35 @@ class Program:
             '''GazeTracking analyzes the frame'''
             try:
                 self.gaze.refresh(self.frame)
-            except:
+            except Exception:
                 pass
             self.frame = self.gaze.annotated_frame()
+
+            if self.gaze.image_too_dark():
+                cv2.putText(self.frame, "Nedostatok svetla", (10, self.screen_height - 10), cv2.FONT_HERSHEY_DUPLEX,
+                            1.6, (50, 50, 200), 2)
+            if self.gaze.face_recognition is False:
+                cv2.putText(self.frame, "Neviem najst tvar", (10, self.screen_height - 70),
+                            cv2.FONT_HERSHEY_DUPLEX, 1.6, (50, 50, 200), 2)
+            if self.gaze.face_too_small is True:
+                cv2.putText(self.frame, "Priblizte sa", (10, self.screen_height - 130),
+                            cv2.FONT_HERSHEY_DUPLEX, 1.6, (50, 50, 200), 2)
+
+            if self.current_gesture != "":
+                cv2.putText(self.frame, self.current_gesture, (self.screen_width - self.img_width, self.img_height),
+                            cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 0), 2)
 
             self.which_eye_is_closed()
 
             self.which_act()
 
-            if (time.time() - self.time_of_output) < self.result_display_duration:
-                cv2.putText(self.frame, self.current_gesture, (0, 50), cv2.FONT_HERSHEY_DUPLEX, 1.6, (255, 255, 255), 2)
+            if (time.time() - self.time_of_output) < 5:
+                cv2.putText(self.frame, self.gesture_text, (10, 50), cv2.FONT_HERSHEY_DUPLEX, 1.6,
+                            (0, 0, 0), 2)
             else:
-                self.current_gesture = ""
+                self.gesture_text = ""
 
             self.display_act()
-
-            cv2.putText(self.frame, self.text, (self.screen_width // 2 + 100, self.screen_height - 10),
-                        cv2.FONT_HERSHEY_DUPLEX, 1.6, (255, 255, 255), 2)
-            if self.gaze.face_recognition is False:
-                cv2.putText(self.frame, "Neviem najst tvar", (self.screen_width // 2 + 100, self.screen_height - 60),
-                            cv2.FONT_HERSHEY_DUPLEX, 1.6, (255, 255, 255), 2)
 
             cv2.imshow("Aurelium", self.frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -188,14 +200,14 @@ class Program:
             if (right_value is not None and
                     (self.gaze.left_eye_threshold + self.gaze.shift) >= right_value >= (
                             self.gaze.left_eye_threshold - self.gaze.shift)):
-                self.gaze.add_to_threshold("L", right_value)
+                self.gaze.add_to_threshold("L", left_value)
             neither = False
         if right_is_closed:
             self.list_of_acts["Closed right"] += 1
             if (left_value is not None and
                     (self.gaze.right_eye_threshold + self.gaze.shift) >= left_value >= (
                             self.gaze.right_eye_threshold - self.gaze.shift)):
-                self.gaze.add_to_threshold("R", left_value)
+                self.gaze.add_to_threshold("R", right_value)
             neither = False
         if neither is True:
             self.list_of_acts["Neither"] += 1
@@ -204,10 +216,8 @@ class Program:
         self.counter += 1
 
         if self.counter == 3:
-            self.text = ""
-
             if self.list_of_acts["Closed right"] < self.list_of_acts["Neither"] > self.list_of_acts["Closed left"]:
-                self.text = ""
+                self.current_act = ""
                 if self.act_started is True:
                     self.detect_act()
                     if self.act_ended is True:
@@ -218,69 +228,68 @@ class Program:
                     self.gesture_end_start_time = time.time()
                     self.gesture_end_stop_time = self.gesture_end_start_time + self.gesture_end_duration
             elif self.list_of_acts["Closed right"] == self.list_of_acts["Closed left"]:
-                self.text = "Closed both"
+                self.current_act = "Closed both"
                 self.detection_of_end = False
                 self.start_act()
-                if self.act_started is True:
-                    self.acts.append("b")
+                self.acts.append("b")
             elif self.list_of_acts["Closed right"] < self.list_of_acts["Closed left"]:
-                self.text = "Closed left"
+                self.current_act = "Closed left"
                 self.detection_of_end = False
-                self.start_act()
-                if self.act_started is True:
-                    self.acts.append("l")
+                self.acts.append("l")
             elif self.list_of_acts["Closed right"] > self.list_of_acts["Closed left"]:
-                self.text = "Closed left"
+                self.current_act = "Closed right"
                 self.detection_of_end = False
-                self.start_act()
-                if self.act_started is True:
-                    self.acts.append("r")
+                self.acts.append("r")
 
             if self.detection_of_end is True:
                 self.detect_end()
-                if self.act_ended is False:
-                    self.act_ended = True
+                if self.end_of_gesture is True:
+                    self.end_of_gesture = False
                     self.time_of_output = time.time()
 
             self.list_of_acts = {"Closed left": 0, "Closed right": 0, "Neither": 0}
             self.counter = 0
 
-            if self.gaze.image_too_dark():
-                self.text = "Nevhodne osvetlenie"
-
     def display_act(self):
-        if self.act_ended and self.act == "l":
-            self.act = ""
-            self.act_ended = False
-            added_image = self.display_image(self.left_closed)
-        elif self.act_ended and self.act == "L":
-            self.act = ""
-            self.act_ended = False
-            added_image = self.display_image(self.left_closed_long)
-        elif self.act_ended and self.act == "r":
-            self.act = ""
-            self.act_ended = False
-            added_image = self.display_image(self.right_closed)
-        elif self.act_ended and self.act == "R":
-            self.act = ""
-            self.act_ended = False
-            added_image = self.display_image(self.right_closed_long)
-        elif self.act_ended and self.act == "b":
-            self.act = ""
-            self.act_ended = False
-            added_image = self.display_image(self.both_closed)
-        elif self.act_ended and self.act == "B":
-            self.act = ""
-            self.act_ended = False
-            added_image = self.display_image(self.both_closed_long)
-        else:
-            added_image = self.display_image(self.both_open)
+        no_image = True
+        if self.end_of_display_image is True:
+            no_image = False
+            if self.current_act == "Closed left":
+                self.act = ""
+                self.act_ended = False
+                added_image = self.display_image(self.left_closed)
+            elif self.act_ended and self.act == "L":
+                self.act = ""
+                self.act_ended = False
+                added_image = self.display_image(self.left_closed_long)
+            elif self.current_act == "Closed right":
+                self.act = ""
+                self.act_ended = False
+                added_image = self.display_image(self.right_closed)
+            elif self.act_ended and self.act == "R":
+                self.act = ""
+                self.act_ended = False
+                added_image = self.display_image(self.right_closed_long)
+            elif self.current_act == "Closed both":
+                self.act = ""
+                self.act_ended = False
+                added_image = self.display_image(self.both_closed)
+            elif self.act_ended and self.act == "B":
+                self.act = ""
+                self.act_ended = False
+                added_image = self.display_image(self.both_closed_long)
+            elif self.gaze.pupils_located:
+                added_image = self.display_image(self.both_open)
+            else:
+                no_image = True
 
         if (time.time() - self.act_time) < 1:
-            self.act_ended = False
+            self.end_of_display_image = False
         else:
-            self.act_ended = True
-        self.frame[0:self.img_height, self.screen_width - self.img_width:self.screen_width] = added_image
+            self.end_of_display_image = True
+
+        if no_image is False:
+            self.frame[0:self.img_height, self.screen_width - self.img_width:self.screen_width] = added_image
 
     def display_image(self, image):
         b, g, r, a = cv2.split(image)
@@ -288,9 +297,10 @@ class Program:
         mask = cv2.medianBlur(a, 5)
         h, w, _ = overlay_color.shape
         roi = self.frame[0:self.img_height, self.screen_width - self.img_width:self.screen_width]
-        img1_bg = cv2.bitwise_and(roi.copy(), roi.copy(), mask = cv2.bitwise_not(mask))
-        img2_fg = cv2.bitwise_and(overlay_color, overlay_color, mask = mask)
+        img1_bg = cv2.bitwise_and(roi.copy(), roi.copy(), mask=cv2.bitwise_not(mask))
+        img2_fg = cv2.bitwise_and(overlay_color, overlay_color, mask=mask)
         added_image = cv2.add(img1_bg, img2_fg)
         return added_image
+
 
 Program()

@@ -171,7 +171,7 @@ class Program:
 
             if self.current_gesture != "":
                 cv2.putText(self.frame, self.current_gesture, (self.screen_width - self.img_width, self.img_height),
-                            cv2.FONT_HERSHEY_DUPLEX, 1.6, (0, 0, 0), 2)
+                            cv2.FONT_HERSHEY_DUPLEX, 1.6, (75, 75, 75), 2)
 
             self.which_eye_is_closed()
 
@@ -179,7 +179,7 @@ class Program:
 
             if (time.time() - self.time_of_output) < 5:
                 cv2.putText(self.frame, self.gesture_text, (10, 50), cv2.FONT_HERSHEY_DUPLEX, 1.6,
-                            (0, 0, 0), 2)
+                            (75, 75, 75), 2)
             else:
                 self.gesture_text = ""
 

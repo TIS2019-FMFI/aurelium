@@ -226,7 +226,8 @@ class GazeTracking(object):
         return frame
 
     def image_too_dark(self):
-        if self.face_x1 >= 0 and self.face_x2 >= 0 and self.face_y1 >= 0 and self.face_y2 >= 0:
+        if (self.face_x1 >= 0 and self.face_x2 >= 0 and self.face_y1 >= 0 and self.face_y2 >= 0 and
+                self.face_x1 <= self.face_x2 and self.face_y1 <= self.face_y2):
             frame = self.frame[self.face_x1:self.face_x2, self.face_y1:self.face_y2].copy()
             # in case of focusing on the face only
         else:
